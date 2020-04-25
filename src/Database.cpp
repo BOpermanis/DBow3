@@ -231,23 +231,22 @@ void Database::allocate(int nd, int ni)
 
 void Database::query(
   const  cv::Mat &features,
-  QueryResults &ret, int max_results, int max_id) const
+  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
 {
-
     std::vector<cv::Mat> vf(features.rows);
     for(int r=0;r<features.rows;r++) vf[r]=features.rowRange(r,r+1);
-    query(vf, ret, max_results, max_id);
+    query(vf, ret, target_inds, max_results, max_id);
 }
 
 
 
 void Database::query(
   const std::vector<cv::Mat> &features,
-  QueryResults &ret, int max_results, int max_id) const
+  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
 {
   BowVector vec;
   m_voc->transform(features, vec);
-  query(vec, ret, max_results, max_id);
+  query(vec, ret, target_inds, max_results, max_id);
 }
 
 // --------------------------------------------------------------------------
@@ -255,14 +254,14 @@ void Database::query(
 
 void Database::query(
   const BowVector &vec,
-  QueryResults &ret, int max_results, int max_id) const
+  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
 {
   ret.resize(0);
 
   switch(m_voc->getScoringType())
   {
     case L1_NORM:
-      queryL1(vec, ret, max_results, max_id);
+      queryL1(vec, ret, max_results, max_id, target_inds);
       break;
 
     case L2_NORM:
@@ -291,12 +290,13 @@ void Database::query(
 
 
 void Database::queryL1(const BowVector &vec,
-  QueryResults &ret, int max_results, int max_id) const
+  QueryResults &ret, int max_results, int max_id, const std::vector<int> target_inds) const
 {
   BowVector::const_iterator vit;
-
   std::map<EntryId, double> pairs;
   std::map<EntryId, double>::iterator pit;
+
+  std::set<int> set_target(target_inds.begin(), target_inds.end());
 
   for(vit = vec.begin(); vit != vec.end(); ++vit)
   {
@@ -310,22 +310,34 @@ void Database::queryL1(const BowVector &vec,
     for(auto rit = row.begin(); rit != row.end(); ++rit)
     {
       const EntryId entry_id = rit->entry_id;
-      const WordValue& dvalue = rit->word_weight;
 
-      if((int)entry_id < max_id || max_id == -1)
-      {
-        double value = fabs(qvalue - dvalue) - fabs(qvalue) - fabs(dvalue);
+      bool flag_search = false;
+      if (set_target.empty()) {
+          flag_search = true;
+      } else {
+          auto it_set = set_target.find(entry_id);
+          if (it_set!= set_target.end()) {
+              flag_search = true;
+          }
+      }
+      if (flag_search) {
+          const WordValue& dvalue = rit->word_weight;
 
-        pit = pairs.lower_bound(entry_id);
-        if(pit != pairs.end() && !(pairs.key_comp()(entry_id, pit->first)))
-        {
-          pit->second += value;
-        }
-        else
-        {
-          pairs.insert(pit,
-            std::map<EntryId, double>::value_type(entry_id, value));
-        }
+          if((int)entry_id < max_id || max_id == -1)
+          {
+              double value = fabs(qvalue - dvalue) - fabs(qvalue) - fabs(dvalue);
+
+              pit = pairs.lower_bound(entry_id);
+              if(pit != pairs.end() && !(pairs.key_comp()(entry_id, pit->first)))
+              {
+                  pit->second += value;
+              }
+              else
+              {
+                  pairs.insert(pit,
+                               std::map<EntryId, double>::value_type(entry_id, value));
+              }
+          }
       }
 
     } // for each inverted row

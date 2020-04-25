@@ -179,7 +179,7 @@ public:
    * @param max_id only entries with id <= max_id are returned in ret. 
    *   < 0 means all
    */
-  void query(const std::vector<cv::Mat> &features, QueryResults &ret,
+  void query(const std::vector<cv::Mat> &features, QueryResults &ret, const std::vector<int> target_inds,
     int max_results = 1, int max_id = -1) const;
   /**
    * Queries the database with some features
@@ -189,7 +189,7 @@ public:
    * @param max_id only entries with id <= max_id are returned in ret.
    *   < 0 means all
    */
-  void query(const  cv::Mat &features, QueryResults &ret,
+  void query(const  cv::Mat &features, QueryResults &ret, const std::vector<int> target_inds,
     int max_results = 1, int max_id = -1) const;
 
   /**
@@ -200,7 +200,7 @@ public:
    * @param max_id only entries with id <= max_id are returned in ret. 
    *   < 0 means all
    */
-  void query(const BowVector &vec, QueryResults &ret, 
+  void query(const BowVector &vec, QueryResults &ret, const std::vector<int> target_inds,
     int max_results = 1, int max_id = -1) const;
 
   /**
@@ -255,7 +255,7 @@ protected:
   
   /// Query with L1 scoring
   void queryL1(const BowVector &vec, QueryResults &ret, 
-    int max_results, int max_id) const;
+    int max_results, int max_id, const std::vector<int> target_inds) const;
   
   /// Query with L2 scoring
   void queryL2(const BowVector &vec, QueryResults &ret, 
