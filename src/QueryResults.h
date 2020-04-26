@@ -27,6 +27,8 @@ public:
   
   /// Score obtained
   double Score;
+
+  double minScoreInSelection = -1.0;
   
   /// debug
   int nWords; // words in common

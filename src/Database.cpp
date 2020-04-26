@@ -1,4 +1,5 @@
 #include "Database.h"
+#include <unordered_set>
 
 namespace DBoW3{
 
@@ -296,7 +297,9 @@ void Database::queryL1(const BowVector &vec,
   std::map<EntryId, double> pairs;
   std::map<EntryId, double>::iterator pit;
 
-  std::set<int> set_target(target_inds.begin(), target_inds.end());
+  std::unordered_set<int> set_target(target_inds.begin(), target_inds.end());
+
+  bool flag_selection_empty = set_target.empty();
 
   for(vit = vec.begin(); vit != vec.end(); ++vit)
   {
@@ -310,9 +313,10 @@ void Database::queryL1(const BowVector &vec,
     for(auto rit = row.begin(); rit != row.end(); ++rit)
     {
       const EntryId entry_id = rit->entry_id;
+      const WordValue& dvalue = rit->word_weight;
 
       bool flag_search = false;
-      if (set_target.empty()) {
+      if (flag_selection_empty) {
           flag_search = true;
       } else {
           auto it_set = set_target.find(entry_id);
@@ -321,8 +325,6 @@ void Database::queryL1(const BowVector &vec,
           }
       }
       if (flag_search) {
-          const WordValue& dvalue = rit->word_weight;
-
           if((int)entry_id < max_id || max_id == -1)
           {
               double value = fabs(qvalue - dvalue) - fabs(qvalue) - fabs(dvalue);
@@ -331,9 +333,7 @@ void Database::queryL1(const BowVector &vec,
               if(pit != pairs.end() && !(pairs.key_comp()(entry_id, pit->first)))
               {
                   pit->second += value;
-              }
-              else
-              {
+              } else {
                   pairs.insert(pit,
                                std::map<EntryId, double>::value_type(entry_id, value));
               }
@@ -356,6 +356,18 @@ void Database::queryL1(const BowVector &vec,
   std::sort(ret.begin(), ret.end());
   // (ret is inverted now --the lower the better--)
 
+  QueryResults::iterator qit;
+  double minScoreInSelection = 2.0;
+  if (not flag_selection_empty){
+      double x;
+      for(qit = ret.begin(); qit != ret.end(); qit++){
+          x = -qit->Score/2.0;
+          if (x < minScoreInSelection) {
+              minScoreInSelection = x;
+          }
+      }
+  }
+
   // cut vector
   if(max_results > 0 && (int)ret.size() > max_results)
     ret.resize(max_results);
@@ -365,9 +377,12 @@ void Database::queryL1(const BowVector &vec,
   //		for all i | v_i != 0 and w_i != 0
   // (Nister, 2006)
   // scaled_||v - w||_{L1} = 1 - 0.5 * ||v - w||_{L1}
-  QueryResults::iterator qit;
-  for(qit = ret.begin(); qit != ret.end(); qit++)
-    qit->Score = -qit->Score/2.0;
+
+
+  for(qit = ret.begin(); qit != ret.end(); qit++){
+      qit->Score = -qit->Score/2.0;
+      qit->minScoreInSelection = minScoreInSelection;
+  }
 }
 
 // --------------------------------------------------------------------------
