@@ -1,295 +1,296 @@
 #include "Database.h"
 #include <unordered_set>
 
-namespace DBoW3{
+namespace DBoW3 {
 
 // --------------------------------------------------------------------------
 
 
-Database::Database
-  (bool use_di, int di_levels)
-  : m_voc(NULL), m_use_di(use_di), m_dilevels(di_levels), m_nentries(0)
-{
-}
+    Database::Database
+            (bool use_di, int di_levels)
+            : m_voc(NULL), m_use_di(use_di), m_dilevels(di_levels), m_nentries(0) {
+    }
 
 // --------------------------------------------------------------------------
 
-Database::Database
-  (const Vocabulary &voc, bool use_di, int di_levels)
-  : m_voc(NULL), m_use_di(use_di), m_dilevels(di_levels)
-{
-  setVocabulary(voc);
-  clear();
-}
-
-// --------------------------------------------------------------------------
-
-
-Database::Database
-  (const Database &db)
-  : m_voc(NULL)
-{
-  *this = db;
-}
+    Database::Database
+            (const Vocabulary &voc, bool use_di, int di_levels)
+            : m_voc(NULL), m_use_di(use_di), m_dilevels(di_levels) {
+        setVocabulary(voc);
+        clear();
+    }
 
 // --------------------------------------------------------------------------
 
 
-Database::Database
-  (const std::string &filename)
-  : m_voc(NULL)
-{
-  load(filename);
-}
+    Database::Database
+            (const Database &db)
+            : m_voc(NULL) {
+        *this = db;
+    }
 
 // --------------------------------------------------------------------------
 
 
-Database::Database
-  (const char *filename)
-  : m_voc(NULL)
-{
-  load(filename);
-}
+    Database::Database
+            (const std::string &filename)
+            : m_voc(NULL) {
+        load(filename);
+    }
 
 // --------------------------------------------------------------------------
 
 
-Database::~Database(void)
-{
-  delete m_voc;
-}
+    Database::Database
+            (const char *filename)
+            : m_voc(NULL) {
+        load(filename);
+    }
 
 // --------------------------------------------------------------------------
 
 
-Database& Database::operator=
-  (const Database &db)
-{
-  if(this != &db)
-  {
-    m_dfile = db.m_dfile;
-    m_dilevels = db.m_dilevels;
-    m_ifile = db.m_ifile;
-    m_nentries = db.m_nentries;
-    m_use_di = db.m_use_di;
-    if (db.m_voc!=0) setVocabulary(*db.m_voc);
-  }
-  return *this;
-}
+    Database::~Database(void) {
+        delete m_voc;
+    }
 
 // --------------------------------------------------------------------------
 
-EntryId Database::add(
-  const  cv::Mat &features,
-  BowVector *bowvec, FeatureVector *fvec)
-{
-    std::vector<cv::Mat> vf(features.rows);
-    for(int r=0;r<features.rows;r++) vf[r]=features.rowRange(r,r+1);
-    return add(vf,bowvec,fvec);
-}
 
-EntryId Database::add(
-  const std::vector<cv::Mat> &features,
-  BowVector *bowvec, FeatureVector *fvec)
-{
-  BowVector aux;
-  BowVector& v = (bowvec ? *bowvec : aux);
+    Database &Database::operator=
+            (const Database &db) {
+        if (this != &db) {
+            m_dfile = db.m_dfile;
+            m_dilevels = db.m_dilevels;
+            m_ifile = db.m_ifile;
+            m_nentries = db.m_nentries;
+            m_use_di = db.m_use_di;
+            if (db.m_voc != 0) setVocabulary(*db.m_voc);
+        }
+        return *this;
+    }
 
-  if(m_use_di && fvec != NULL)
-  {
-    m_voc->transform(features, v, *fvec, m_dilevels); // with features
-    return add(v, *fvec);
-  }
-  else if(m_use_di)
-  {
-    FeatureVector fv;
-    m_voc->transform(features, v, fv, m_dilevels); // with features
-    return add(v, fv);
-  }
-  else if(fvec != NULL)
-  {
-    m_voc->transform(features, v, *fvec, m_dilevels); // with features
-    return add(v);
-  }
-  else
-  {
-    m_voc->transform(features, v); // with features
-    return add(v);
-  }
-}
+// --------------------------------------------------------------------------
+
+    EntryId Database::add(
+            const cv::Mat &features,
+            BowVector *bowvec, FeatureVector *fvec) {
+        std::vector <cv::Mat> vf(features.rows);
+        for (int r = 0; r < features.rows; r++) vf[r] = features.rowRange(r, r + 1);
+        return add(vf, bowvec, fvec);
+    }
+
+    EntryId Database::add(
+            const std::vector <cv::Mat> &features,
+            BowVector *bowvec, FeatureVector *fvec) {
+        BowVector aux;
+        BowVector &v = (bowvec ? *bowvec : aux);
+
+        if (m_use_di && fvec != NULL) {
+            m_voc->transform(features, v, *fvec, m_dilevels); // with features
+            return add(v, *fvec);
+        } else if (m_use_di) {
+            FeatureVector fv;
+            m_voc->transform(features, v, fv, m_dilevels); // with features
+            return add(v, fv);
+        } else if (fvec != NULL) {
+            m_voc->transform(features, v, *fvec, m_dilevels); // with features
+            return add(v);
+        } else {
+            m_voc->transform(features, v); // with features
+            return add(v);
+        }
+    }
 
 // ---------------------------------------------------------------------------
 
 
-EntryId Database::add(const BowVector &v,
-  const FeatureVector &fv)
-{
-  EntryId entry_id = m_nentries++;
+    EntryId Database::add(const BowVector &v,
+                          const FeatureVector &fv) {
+        EntryId entry_id = m_nentries++;
 
-  BowVector::const_iterator vit;
-  std::vector<unsigned int>::const_iterator iit;
+        BowVector::const_iterator vit;
+        std::vector<unsigned int>::const_iterator iit;
 
-  if(m_use_di)
-  {
-    // update direct file
-    if(entry_id == m_dfile.size())
-    {
-      m_dfile.push_back(fv);
+        if (m_use_di) {
+            // update direct file
+            if (entry_id == m_dfile.size()) {
+                m_dfile.push_back(fv);
+            } else {
+                m_dfile[entry_id] = fv;
+            }
+        }
+
+        // update inverted file
+        listwords bowlist;
+        for (vit = v.begin(); vit != v.end(); ++vit) {
+            const WordId &word_id = vit->first;
+            const WordValue &word_weight = vit->second;
+
+            bowlist.insert(word_id);
+            IFRow &ifrow = m_ifile[word_id];
+            ifrow.push_back(IFPair(entry_id, word_weight));
+        }
+        bow_lookup.insert ( std::pair<EntryId, listwords >(entry_id, bowlist) );
+        return entry_id;
     }
-    else
-    {
-      m_dfile[entry_id] = fv;
+
+// --------------------------------------------------------------------------
+
+
+    void Database::setVocabulary
+            (const Vocabulary &voc) {
+        delete m_voc;
+        m_voc = new Vocabulary(voc);
+        clear();
     }
-  }
-
-  // update inverted file
-  for(vit = v.begin(); vit != v.end(); ++vit)
-  {
-    const WordId& word_id = vit->first;
-    const WordValue& word_weight = vit->second;
-
-    IFRow& ifrow = m_ifile[word_id];
-    ifrow.push_back(IFPair(entry_id, word_weight));
-  }
-
-  return entry_id;
-}
 
 // --------------------------------------------------------------------------
 
 
-  void Database::setVocabulary
-  (const Vocabulary& voc)
-{
-  delete m_voc;
-  m_voc = new Vocabulary(voc);
-  clear();
-}
-
-// --------------------------------------------------------------------------
-
-
-  void Database::setVocabulary
-  (const Vocabulary& voc, bool use_di, int di_levels)
-{
-  m_use_di = use_di;
-  m_dilevels = di_levels;
-  delete m_voc;
-  m_voc = new Vocabulary(voc);
-  clear();
-}
-
-// --------------------------------------------------------------------------
-
-
- const Vocabulary*
-Database::getVocabulary() const
-{
-  return m_voc;
-}
-
-// --------------------------------------------------------------------------
-
-
- void Database::clear()
-{
-  // resize vectors
-  m_ifile.resize(0);
-  m_ifile.resize(m_voc->size());
-  m_dfile.resize(0);
-  m_nentries = 0;
-}
-
-// --------------------------------------------------------------------------
-
-
-void Database::allocate(int nd, int ni)
-{
-  // m_ifile already contains |words| items
-  if(ni > 0)
-  {
-    for(auto rit = m_ifile.begin(); rit != m_ifile.end(); ++rit)
-    {
-      int n = (int)rit->size();
-      if(ni > n)
-      {
-        rit->resize(ni);
-        rit->resize(n);
-      }
+    void Database::setVocabulary
+            (const Vocabulary &voc, bool use_di, int di_levels) {
+        m_use_di = use_di;
+        m_dilevels = di_levels;
+        delete m_voc;
+        m_voc = new Vocabulary(voc);
+        clear();
     }
-  }
 
-  if(m_use_di && (int)m_dfile.size() < nd)
-  {
-    m_dfile.resize(nd);
-  }
-}
+// --------------------------------------------------------------------------
+
+
+    const Vocabulary *
+    Database::getVocabulary() const {
+        return m_voc;
+    }
+
+// --------------------------------------------------------------------------
+
+
+    void Database::clear() {
+        // resize vectors
+        m_ifile.resize(0);
+        m_ifile.resize(m_voc->size());
+        m_dfile.resize(0);
+        m_nentries = 0;
+    }
+
+// --------------------------------------------------------------------------
+
+
+    void Database::allocate(int nd, int ni) {
+        // m_ifile already contains |words| items
+        if (ni > 0) {
+            for (auto rit = m_ifile.begin(); rit != m_ifile.end(); ++rit) {
+                int n = (int) rit->size();
+                if (ni > n) {
+                    rit->resize(ni);
+                    rit->resize(n);
+                }
+            }
+        }
+
+        if (m_use_di && (int) m_dfile.size() < nd) {
+            m_dfile.resize(nd);
+        }
+    }
 
 
 
 // --------------------------------------------------------------------------
 
-void Database::query(
-  const  cv::Mat &features,
-  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
-{
-    std::vector<cv::Mat> vf(features.rows);
-    for(int r=0;r<features.rows;r++) vf[r]=features.rowRange(r,r+1);
-    query(vf, ret, target_inds, max_results, max_id);
-}
+    void Database::query(
+            const cv::Mat &features,
+            QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const {
+        std::vector <cv::Mat> vf(features.rows);
+        for (int r = 0; r < features.rows; r++) vf[r] = features.rowRange(r, r + 1);
+        query(vf, ret, target_inds, max_results, max_id);
+    }
 
 
-
-void Database::query(
-  const std::vector<cv::Mat> &features,
-  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
-{
-  BowVector vec;
-  m_voc->transform(features, vec);
-  query(vec, ret, target_inds, max_results, max_id);
-}
+    void Database::query(
+            const std::vector <cv::Mat> &features,
+            QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const {
+        BowVector vec;
+        m_voc->transform(features, vec);
+        query(vec, ret, target_inds, max_results, max_id);
+    }
 
 // --------------------------------------------------------------------------
 
 
-void Database::query(
-  const BowVector &vec,
-  QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const
-{
-  ret.resize(0);
+    void Database::query(
+            const BowVector &vec,
+            QueryResults &ret, const std::vector<int> target_inds, int max_results, int max_id) const {
+        ret.resize(0);
 
-  switch(m_voc->getScoringType())
-  {
-    case L1_NORM:
-      queryL1(vec, ret, max_results, max_id, target_inds);
-      break;
+        switch (m_voc->getScoringType()) {
+            case L1_NORM:
+                queryL1(vec, ret, max_results, max_id, target_inds);
+                break;
 
-    case L2_NORM:
-      queryL2(vec, ret, max_results, max_id);
-      break;
+            case L2_NORM:
+                queryL2(vec, ret, max_results, max_id);
+                break;
 
-    case CHI_SQUARE:
-      queryChiSquare(vec, ret, max_results, max_id);
-      break;
+            case CHI_SQUARE:
+                queryChiSquare(vec, ret, max_results, max_id);
+                break;
 
-    case KL:
-      queryKL(vec, ret, max_results, max_id);
-      break;
+            case KL:
+                queryKL(vec, ret, max_results, max_id);
+                break;
 
-    case BHATTACHARYYA:
-      queryBhattacharyya(vec, ret, max_results, max_id);
-      break;
+            case BHATTACHARYYA:
+                queryBhattacharyya(vec, ret, max_results, max_id);
+                break;
 
-    case DOT_PRODUCT:
-      queryDotProduct(vec, ret, max_results, max_id);
-      break;
-  }
+            case DOT_PRODUCT:
+                queryDotProduct(vec, ret, max_results, max_id);
+                break;
+        }
+    }
+    // vec - query bow vektors
+
+//#include <iterator>
+void Database::compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt, float &score) {
+
+    listwords vi = bow_lookup.find(i)-> second;
+    listwords vj = bow_lookup.find(j)-> second;
+    std::list<WordId> v;
+    std::set_intersection(vi.begin(),vi.end(),vj.begin(),vj.end(), std::back_inserter(v));
+
+    for(auto it=v.begin(); it!=v.end(); it++) {
+        cnt ++;
+
+        const WordId word_id = *it;
+        const IFRow& row = m_ifile[word_id];
+
+        double ivalue = 0.0;
+        double jvalue = 0.0;
+
+        for(auto rit = row.begin(); rit != row.end(); ++rit)
+        {
+            const EntryId entry_id = rit->entry_id;
+            const WordValue& value = rit->word_weight;
+
+            if(entry_id == i){
+                ivalue = value;
+                if (fabs(ivalue * jvalue) > 0) break;
+            }
+            if(entry_id == j){
+                jvalue = value;
+                if (fabs(ivalue * jvalue) > 0) break;
+            }
+        }
+        score += fabs(ivalue - jvalue) - fabs(ivalue) - fabs(jvalue);
+    }
+    score *= -0.5;
 }
 
+
 // --------------------------------------------------------------------------
-
-
 void Database::queryL1(const BowVector &vec,
   QueryResults &ret, int max_results, int max_id, const std::vector<int> target_inds) const
 {

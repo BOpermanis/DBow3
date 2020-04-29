@@ -17,6 +17,8 @@
 #include <string>
 #include <list>
 #include <set>
+#include <map>
+//#include <unordered_set>
 
 #include "Vocabulary.h"
 #include "QueryResults.h"
@@ -239,6 +241,8 @@ public:
   virtual void load(const cv::FileStorage &fs, 
     const std::string &name = "database");
 
+    void compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt, float &score);
+
   // --------------------------------------------------------------------------
 
   /**
@@ -324,6 +328,8 @@ protected:
   typedef std::vector<FeatureVector> DirectFile;
   // DirectFile[entry_id] --> [ directentry, ... ]
 
+  typedef std::set<WordId> listwords;
+
 protected:
 
   /// Associated vocabulary
@@ -341,7 +347,10 @@ protected:
   
   /// Direct file (resized for allocation)
   DirectFile m_dfile;
-  
+
+  /// bow lookup
+  std::map<EntryId, listwords> bow_lookup;
+
   /// Number of valid entries in m_dfile
   int m_nentries;
   
