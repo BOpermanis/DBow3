@@ -252,7 +252,48 @@ namespace DBoW3 {
         }
     }
     // vec - query bow vektors
+void Database::retrieveBow(const EntryId i, BowVector &vec) {
+        listwords v = bow_lookup.find(i)-> second;
+        for(auto it=v.begin(); it!=v.end(); it++) {
+            const WordId word_id = *it;
+            const IFRow& row = m_ifile[word_id];
 
+            for(auto rit = row.begin(); rit != row.end(); ++rit)
+            {
+                const EntryId entry_id = rit->entry_id;
+                const WordValue& value = rit->word_weight;
+
+                if(entry_id == i){
+                    vec[word_id] = value;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    void Database::commonWords(const  cv::Mat &features, const EntryId j, std::vector<WordId> &inds) {
+        BowVector vi;
+        BowVector vj;
+        m_voc->transform(features, vi);
+        retrieveBow(j, vj);
+
+        std::list<WordId> vi1;
+        std::list<WordId> vj1;
+
+//        std::cout << "vi.size() " << vi.size() << std::endl;
+//        std::cout << "vj.size() " << vj.size() << std::endl;
+
+        for(auto it=vi.begin(); it!=vi.end(); it ++){
+            vi1.push_back(it->first);
+        }
+
+        for(auto it=vj.begin(); it!=vj.end(); it ++){
+            vj1.push_back(it->first);
+        }
+
+        std::set_intersection(vi1.begin(),vi1.end(),vj1.begin(),vj1.end(), std::back_inserter(inds));
+    }
 //#include <iterator>
 void Database::compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt, float &score) {
 
@@ -815,8 +856,7 @@ void Database::queryDotProduct(
 // ---------------------------------------------------------------------------
 
 
-const FeatureVector& Database::retrieveFeatures
-  (EntryId id) const
+const FeatureVector& Database::retrieveFeatures(EntryId id) const
 {
   assert(id < size());
   return m_dfile[id];

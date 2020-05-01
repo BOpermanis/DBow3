@@ -213,6 +213,8 @@ public:
    */
   const FeatureVector& retrieveFeatures(EntryId id) const;
 
+  void retrieveBow(const EntryId i, BowVector &vec);
+
   /**
    * Stores the database in a file
    * @param filename
@@ -242,6 +244,8 @@ public:
     const std::string &name = "database");
 
     void compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt, float &score);
+
+    void commonWords(const  cv::Mat &features, const EntryId j, std::vector<WordId> &inds);
 
   // --------------------------------------------------------------------------
 
@@ -316,7 +320,8 @@ protected:
   
   /// Row of InvertedFile
   typedef std::list<IFPair> IFRow;
-  // IFRows are sorted in ascending entry_id order
+//    typedef std::map<EntryId, WordWeight> IFrow;
+// IFRows are sorted in ascending entry_id order
   
   /// Inverted index
   typedef std::vector<IFRow> InvertedFile; 
