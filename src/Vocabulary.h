@@ -186,7 +186,9 @@ public:
    * @param words ids of words
    */
   void getWordsFromNode(NodeId nid, std::vector<WordId> &words) const;
-  
+
+  int hamming_distance(const cv::Mat &f1, const cv::Mat &f2);
+
   /**
    * Returns the branching factor of the tree (k)
    * @return k

@@ -833,12 +833,14 @@ void Vocabulary::transform
 // --------------------------------------------------------------------------
 
 
+int Vocabulary::hamming_distance(const cv::Mat &f1, const cv::Mat &f2) {
+    return (int)DescManip::distance(f1, f2);;
+}
+
 void Vocabulary::transform(const cv::Mat &feature,
   WordId &word_id, WordValue &weight, NodeId *nid, int levelsup) const
 {
   // propagate the feature down the tree
-
-
   // level at which the node must be stored in nid, if given
   const int nid_level = m_L - levelsup;
   if(nid_level <= 0 && nid != NULL) *nid = 0; // root

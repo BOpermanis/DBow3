@@ -94,7 +94,6 @@ double DescManip::distance(const cv::Mat &a,  const cv::Mat &b)
 
     //binary descriptor
     if (a.type()==CV_8U){
-
         // Bit count function got from:
          // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
          // This implementation assumes that a.cols (CV_8U) % sizeof(uint64_t) == 0
