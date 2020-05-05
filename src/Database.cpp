@@ -303,6 +303,8 @@ void Database::retrieveBow(const EntryId i, BowVector &vec) {
         std::set_intersection(vi1.begin(),vi1.end(),vj1.begin(),vj1.end(), std::back_inserter(inds));
     }
 
+
+
 //#include <iterator>
 void Database::compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt, float &score) {
 
@@ -339,6 +341,26 @@ void Database::compareBowsL1(const EntryId i, const EntryId j, unsigned int &cnt
     score *= -0.5;
 }
 
+void Database::erase(const WordId i){
+    auto mit = bow_lookup.find(i);
+    listwords v = mit-> second;
+    bow_lookup.erase(mit);
+
+    // not deleting from m_dfile becouse vector is indexed by id
+
+    IFRow::iterator rit;
+
+    for(auto it=v.begin(); it!=v.end(); it++) {
+        IFRow& row = m_ifile[*it];
+
+        for (rit = row.begin(); rit != row.end();) {
+            if (rit->entry_id == i)
+                rit = row.erase(rit);
+            else
+                ++rit;
+        }
+    }
+    }
 
 // --------------------------------------------------------------------------
 void Database::queryL1(const BowVector &vec,

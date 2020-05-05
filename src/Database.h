@@ -247,6 +247,7 @@ public:
 
     void commonWords(const  cv::Mat &features, const EntryId j, std::vector<WordId> &inds);
 
+    void erase(const WordId i);
   // --------------------------------------------------------------------------
 
   /**
